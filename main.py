@@ -54,4 +54,4 @@ init_vcs()
 
 snapshot(directory)
 
-revert_to_snapshot("1d43da4cd518d87c99a2f0b6b00cf130575e18efd641c2780f3d66d51852db27")
+revert_to_snapshot("8804b25e901028022212e8bcf0e25bcc385c9cf1324d9605e28e786f0205d473")
