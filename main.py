@@ -43,6 +43,15 @@ def revert_to_snapshot(hash_digest):
     if not os.path.exists(snapshot_path):
         print("Snapshot does not exist")
 
+    with open(snapshot_path, 'rb') as f:
+        snapshot_data = pickle.load(f)
+    for file_path, content in snapshot_data['files'].items():
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb") as f:
+            f.write(content)
+    
 init_vcs()
 
 snapshot(directory)
+
+revert_to_snapshot("1d43da4cd518d87c99a2f0b6b00cf130575e18efd641c2780f3d66d51852db27")
