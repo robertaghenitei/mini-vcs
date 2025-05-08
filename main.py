@@ -2,8 +2,7 @@ import hashlib
 import os
 import pickle
 from pprint import pprint
-
-directory = os.getcwd() # This is the current directory
+import sys
 
 def init_vcs():
     os.makedirs(".my_git", exist_ok=True)
@@ -49,9 +48,25 @@ def revert_to_snapshot(hash_digest):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "wb") as f:
             f.write(content)
+
+    current_files = set()
+    for (root, dir, files) in os.walk(".", topdown=True):
+        if any(skip_dir in root for skip_dir in ['.my_git', '.git']):
+            continue  # ignores files in .my_Git or .git directories
+
+        for file in files:
+            current_files.add(os.path.join(root, file))
+    snapshot_files = set(snapshot_data['file_list'])
+    files_to_delete = current_files - snapshot_files
+    for file_path in files_to_delete:
+        os.remove(file_path)
+        print(f"Removed {file_path}")
+    print(f'We reverted to snapshot {hash_digest}')
     
-init_vcs()
+def main():
+    directory = os.getcwd() # This is the current directory
 
-snapshot(directory)
 
-revert_to_snapshot("8804b25e901028022212e8bcf0e25bcc385c9cf1324d9605e28e786f0205d473")
+
+if __name__ == "__main__":
+    main()
