@@ -7,7 +7,7 @@ def main():
         print("Use these commands")
         print("python main.py init")
         print("python main.py add <.|file>")
-        print("python main.py commit")
+        print("python main.py commit <messsage optional>")
         print("python main.py revert <hash>")
         return
     command = sys.argv[1]
@@ -19,9 +19,14 @@ def main():
             return
         stage(sys.argv[2])
     elif command == "commit":
-        commit()
+        if len(sys.argv) > 2:
+            commit(sys.argv[2])
+        else:
+            commit()
     elif command == "revert":
         revert_to_snapshot(sys.argv[2])
+    elif command == "log":
+        log()
     else: 
         print("Unknown command:", command)
 

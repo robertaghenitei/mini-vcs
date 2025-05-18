@@ -2,6 +2,7 @@ import hashlib
 import os
 import pickle
 from pprint import pprint
+from datetime import datetime
 
 def init_vcs():
     os.makedirs(".my_git", exist_ok=True)
@@ -41,7 +42,7 @@ def stage(arg):
          pickle.dump(index, f)
 
 
-def commit():
+def commit(commit_message=""):
     snapshot_hash = hashlib.sha256()
     snapshot_data = {"files": {}}
 
@@ -74,6 +75,13 @@ def commit():
     with open(f'.my_git/{hash_digest}', 'wb') as f:
         pickle.dump(snapshot_data, f)
     
+    with open(".my_git/log", "a") as f:
+        f.write(f"commit {hash_digest}\n")
+        f.write("Author: user_name <user@email.com>\n")
+        f.write(f"Date:   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        f.write(f"    {commit_message.strip()}\n\n")
+
+
     print(f'Snapshot created with hash {hash_digest}')
 
 
@@ -107,5 +115,10 @@ def revert_to_snapshot(hash_digest):
 
  
 def log():
-    pass
+    try:
+        with open(".my_git/log", "r") as f:
+            for line in f.readlines():
+                print(line)
+    except FileNotFoundError:
+        print("No Log found")
 
