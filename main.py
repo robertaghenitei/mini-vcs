@@ -4,44 +4,86 @@ import pickle
 from pprint import pprint
 import sys
 
+
 def init_vcs():
     os.makedirs(".my_git", exist_ok=True)
+    with open('.my_git/index', 'wb') as f:
+        pickle.dump({}, f)
     print('VCS initialized.')
 
 
 # print(cwd)  
+def stage(arg):
+    if not os.path.exists('.my_git/index'):
+        print("Repository not initialized.")
+        return
+
+    with open(".my_git/index", "rb") as f:
+        index = pickle.load(f)
+
+    if arg == ".":
+        for (root, dir , files) in os.walk(".", topdown=True):
+            for file in files:
+                if any(skip_dir in os.path.join(root, file) for skip_dir in ['.my_git', '.git']):
+                    continue  # ignores files in .my_Git or .git directories
+                if file.startswith('.') or file.endswith('.pyc'):
+                    continue
+                file_path = os.path.normpath(os.path.join(root, file))
+                index[file_path] = 1
+                print(f"Staged {file_path}")
+    elif os.path.exists(arg):
+        file_path = os.path.normpath(arg)
+        index[file_path] = 1
+        print(f"Staged {file_path}")
+    else:
+        print(f"File not found: {arg}")
+        return
+
+    with open(".my_git/index", "wb") as f:
+         pickle.dump(index, f)
 
 
-def snapshot(directory):
+def commit():
     snapshot_hash = hashlib.sha256()
     snapshot_data = {"files": {}}
 
-    for (root, dir, files) in os.walk(directory, topdown=True):
-        for file in files:
-            if any(skip_dir in os.path.join(root, file) for skip_dir in ['.my_git', '.git']):
-                continue  # ignores files in .my_Git or .git directories
-        
-            file_path = os.path.join(root, file)
+    if not os.path.exists('.my_git/index'):
+        print("Repository not initialized.")
+        return
+    else: 
+        with open(".my_git/index", "rb") as f:
+            index = pickle.load(f)
 
-            with open(file_path, "rb") as f:
-                content = f.read()
-                snapshot_hash.update(content)
-                snapshot_data['files'][file_path] = content
+        for file_path in index:
+            try: 
+                with open(file_path, "rb") as f:
+                    content = f.read()
+            
+            except FileNotFoundError:
+                print(f"Warning: File {file_path} not found, skipping.")
+                continue
+
+            snapshot_hash.update(content)
+            snapshot_data['files'][file_path] = content
 
     hash_digest = snapshot_hash.hexdigest()
+    snapshot_path = f'.my_git/{hash_digest}'
+    if os.path.exists(snapshot_path):
+        print(f'No changes detected from the snapshot -  {hash_digest}')
+        return
     snapshot_data['file_list'] = list(snapshot_data['files'].keys())
 
     with open(f'.my_git/{hash_digest}', 'wb') as f:
         pickle.dump(snapshot_data, f)
     
-    pprint(f'Snapshot created with hash {hash_digest}')
+    print(f'Snapshot created with hash {hash_digest}')
 
 
 def revert_to_snapshot(hash_digest):
     snapshot_path = f'.my_git/{hash_digest}'
     if not os.path.exists(snapshot_path):
         print("Snapshot does not exist")
-
+        return
     with open(snapshot_path, 'rb') as f:
         snapshot_data = pickle.load(f)
     for file_path, content in snapshot_data['files'].items():
@@ -59,14 +101,34 @@ def revert_to_snapshot(hash_digest):
     snapshot_files = set(snapshot_data['file_list'])
     files_to_delete = current_files - snapshot_files
     for file_path in files_to_delete:
-        os.remove(file_path)
-        print(f"Removed {file_path}")
+        if not file_path.startswith('.') and os.path.isfile(file_path):
+            os.remove(file_path)
+            print(f"Removed {file_path}")
+
     print(f'We reverted to snapshot {hash_digest}')
     
 def main():
-    directory = os.getcwd() # This is the current directory
-
-
+    if len(sys.argv) < 2:
+        print("Use these commands")
+        print("python main.py init")
+        print("python main.py add <.|file>")
+        print("python main.py commit")
+        print("python main.py revert <hash>")
+        return
+    command = sys.argv[1]
+    if command == 'init':
+        init_vcs()
+    elif command == "add":
+        if len(sys.argv) < 3:
+            print("Usage: python main.py add <.|file>")
+            return
+        stage(sys.argv[2])
+    elif command == "commit":
+        commit()
+    elif command == "revert":
+        revert_to_snapshot(sys.argv[2])
+    else: 
+        print("Unknown command:", command)
 
 if __name__ == "__main__":
     main()
