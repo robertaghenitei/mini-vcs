@@ -120,5 +120,5 @@ def log():
             for line in f.readlines():
                 print(line)
     except FileNotFoundError:
-        print("No Log found")
+        print("No log file found")
 
